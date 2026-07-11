@@ -99,10 +99,39 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Configure AWS credentials (OIDC)
+        if: ${{ secrets.AWS_OIDC_ROLE_ARN != '' }}
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
+
+      - name: Configure AWS credentials (access keys)
+        if: ${{ secrets.AWS_OIDC_ROLE_ARN == '' && (secrets.AWS_ACCESS_KEY_ID != '' && secrets.AWS_SECRET_ACCESS_KEY != '') }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Fail if no AWS credentials are available
+        if: ${{ secrets.AWS_OIDC_ROLE_ARN == '' && (secrets.AWS_ACCESS_KEY_ID == '' || secrets.AWS_SECRET_ACCESS_KEY == '') }}
+        run: |
+          echo "ERROR: No AWS credentials available. Set the repository secret 'AWS_OIDC_ROLE_ARN' for OIDC assume-role or 'AWS_ACCESS_KEY_ID' and 'AWS_SECRET_ACCESS_KEY' for access-key authentication."
+          exit 1
+
+      
+
+      - name: AWS auth method (OIDC)
+        if: ${{ secrets.AWS_OIDC_ROLE_ARN != '' }}
+        run: |
+          echo "AWS auth method: OIDC (using role ARN)"
+
+      - name: AWS auth method (access keys)
+        if: ${{ secrets.AWS_OIDC_ROLE_ARN == '' && (secrets.AWS_ACCESS_KEY_ID != '' && secrets.AWS_SECRET_ACCESS_KEY != '') }}
+        run: |
+          echo "AWS auth method: access keys (AWS_ACCESS_KEY_ID present)"
+
+
 
       - name: Login to Amazon ECR
         id: login-ecr
@@ -177,12 +206,37 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Configure AWS credentials (OIDC)
+        if: ${{ secrets.AWS_OIDC_ROLE_ARN != '' }}
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Setup Terraform
+      - name: Configure AWS credentials (access keys)
+        if: ${{ secrets.AWS_OIDC_ROLE_ARN == '' && (secrets.AWS_ACCESS_KEY_ID != '' && secrets.AWS_SECRET_ACCESS_KEY != '') }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Fail if no AWS credentials are available
+        if: ${{ secrets.AWS_OIDC_ROLE_ARN == '' && (secrets.AWS_ACCESS_KEY_ID == '' || secrets.AWS_SECRET_ACCESS_KEY == '') }}
+        run: |
+          echo "ERROR: No AWS credentials available. Set the repository secret 'AWS_OIDC_ROLE_ARN' for OIDC assume-role or 'AWS_ACCESS_KEY_ID' and 'AWS_SECRET_ACCESS_KEY' for access-key authentication."
+          exit 1
+
+      - name: AWS auth method (OIDC)
+        if: ${{ secrets.AWS_OIDC_ROLE_ARN != '' }}
+        run: |
+          echo "AWS auth method: OIDC (using role ARN)"
+
+      - name: AWS auth method (access keys)
+        if: ${{ secrets.AWS_OIDC_ROLE_ARN == '' && (secrets.AWS_ACCESS_KEY_ID != '' && secrets.AWS_SECRET_ACCESS_KEY != '') }}
+        run: |
+          echo "AWS auth method: access keys (AWS_ACCESS_KEY_ID present)"
+
+      - name: Setup TerraformAWS_REGION
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.5.0
@@ -230,10 +284,35 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Configure AWS credentials (OIDC)
+        if: ${{ secrets.AWS_OIDC_ROLE_ARN != '' }}
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
+
+      - name: Configure AWS credentials (access keys)
+        if: ${{ secrets.AWS_OIDC_ROLE_ARN == '' && (secrets.AWS_ACCESS_KEY_ID != '' && secrets.AWS_SECRET_ACCESS_KEY != '') }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Fail if no AWS credentials are available
+        if: ${{ secrets.AWS_OIDC_ROLE_ARN == '' && (secrets.AWS_ACCESS_KEY_ID == '' || secrets.AWS_SECRET_ACCESS_KEY == '') }}
+        run: |
+          echo "ERROR: No AWS credentials available. Set the repository secret 'AWS_OIDC_ROLE_ARN' for OIDC assume-role or 'AWS_ACCESS_KEY_ID' and 'AWS_SECRET_ACCESS_KEY' for access-key authentication."
+          exit 1
+
+      - name: AWS auth method (OIDC)
+        if: ${{ secrets.AWS_OIDC_ROLE_ARN != '' }}
+        run: |
+          echo "AWS auth method: OIDC (using role ARN)"
+
+      - name: AWS auth method (access keys)
+        if: ${{ secrets.AWS_OIDC_ROLE_ARN == '' && (secrets.AWS_ACCESS_KEY_ID != '' && secrets.AWS_SECRET_ACCESS_KEY != '') }}
+        run: |
+          echo "AWS auth method: access keys (AWS_ACCESS_KEY_ID present)"
 
       - name: Setup kubectl
         uses: azure/setup-kubectl@v3
