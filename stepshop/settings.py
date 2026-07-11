@@ -81,9 +81,15 @@ WSGI_APPLICATION = 'stepshop.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
-DATABASES = {
-    'default': env.db(default="postgresql://postgres:postgres@0.0.0.0:5432/stepshop")
-}
+# Support DATABASE_URL environment variable for testing and deployment
+if "DATABASE_URL" in env:
+    DATABASES = {
+        'default': env.db()
+    }
+else:
+    DATABASES = {
+        'default': env.db(default="postgresql://postgres:postgres@0.0.0.0:5432/stepshop")
+    }
 
 
 # Password validation
