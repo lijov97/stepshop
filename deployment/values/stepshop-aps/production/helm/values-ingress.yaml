@@ -1,0 +1,32 @@
+ingress:
+  apiVersion: 'networking.k8s.io/v1'
+
+  namespace: 'stepshop-aps'
+  name: 'stepshop-aps-ingress'
+
+  annotations:
+    alb.ingress.kubernetes.io/ssl-redirect: '443'
+    alb.ingress.kubernetes.io/backend-protocol: 'HTTP'
+    alb.ingress.kubernetes.io/certificate-arn: 'arn:aws:acm:ap-south-1:844294577846:certificate/7ee2b935-fe9b-4ee1-ab6e-1062b52b1617'
+    alb.ingress.kubernetes.io/group.name: 'default'
+    alb.ingress.kubernetes.io/healthcheck-path: '/health/'
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/scheme: 'internet-facing'
+    alb.ingress.kubernetes.io/tags: 'Name=stepora-production-default-alb-eks-tf, Platform=EKS, Environment=production'
+    alb.ingress.kubernetes.io/wafv2-acl-arn: 'arn:aws:wafv2:ap-south-1:844294577846:regional/webacl/AWSRegionalWAF2/a691c813-d84e-4501-966b-5e2b45240118'
+    alb.ingress.kubernetes.io/target-type: 'ip'
+    alb.ingress.kubernetes.io/subnets: 'stepora-production-default-public-ap-south-1a-tf, stepora-production-default-public-ap-south-1b-tf, stepora-production-default-public-ap-south-1c-tf'
+    alb.ingress.kubernetes.io/load-balancer-attributes: 'access_logs.s3.enabled=true,access_logs.s3.bucket=stepora-production-ap-south-1-alb-logs-tf,access_logs.s3.prefix=default-public,idle_timeout.timeout_seconds=120'
+    kubernetes.io/ingress.class: 'alb'
+
+  rules:
+    - host: 'app.stepshop.stepora.com'
+      http:
+        paths:
+          - backend:
+              service:
+                name: 'stepshop-aps-nginx'
+                port:
+                  number: 80
+            path: '/*'
+            pathType: 'ImplementationSpecific'

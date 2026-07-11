@@ -1,0 +1,87 @@
+namespace: 'stepshop-aps'
+
+app_name: 'stepshop-aps'
+environment: 'production'
+
+service:
+  name: 'stepshop-aps-worker-high'
+  default:
+    port: 8000
+    protocol: 'TCP'
+    targetPort: 8000
+
+hpa:
+  name: 'stepshop-aps-worker-high-hpa'
+  minReplicas: 1
+  maxReplicas: 1
+  targetCPUUtilizationPercentage: 80
+
+pdb:
+  name: 'stepshop-aps-worker-high-pdb'
+  minAvailable: 80%
+
+deployment:
+  name: 'stepshop-aps-worker-high-deployment'
+  replicas: 1
+  maxSurge: 100%
+  maxUnavailable: 0%
+  serviceAccountName: 'stepora-stepshop-aps-vault'
+
+  containers:
+    default:
+      name: 'worker-high'
+      imagePullPolicy: 'Always'
+      image: '500645089924.dkr.ecr.ap-south-1.amazonaws.com/production/stepora/stepshop-aps/backend-app:[BUILD_TAG]'
+      command: '["sh", "-c", "/bin/cp -f /vault/secrets/application.env /etc/profile.d/application-env.sh ; source /etc/profile.d/application-env.sh ; sh /stepora/deployment/app/worker-high-entrypoint.sh"]'
+      memory:
+        requests: 300Mi
+        limits: 400Mi
+      cpu:
+        requests: 50m
+      volumeMounts:
+        - mountPath: '/stepora/logs/'
+          name: 'stepora-stepshop-aps-production-worker-logs'
+        - name: 'stepshop-aps-app-env-volume'
+          mountPath: "/vault/secrets"
+        - name: 'stepshop-aps-certs-msk-volume'
+          mountPath: "/stepora/certs/msk"
+
+  volumes:
+    - name: 'stepora-stepshop-aps-production-worker-logs'
+      hostPath:
+        path: '/home/ec2-user/stepora-logs/stepora-stepshop-aps-production/worker'
+    - name: 'stepshop-aps-app-env-volume'
+      csi:
+        driver: secrets-store.csi.k8s.io
+        readOnly: true
+        volumeAttributes:
+          secretProviderClass: "stepshop-aps-envs"
+    - name: 'stepshop-aps-certs-msk-volume'
+      csi:
+        driver: secrets-store.csi.k8s.io
+        readOnly: true
+        volumeAttributes:
+          secretProviderClass: "stepshop-aps-certs-msk"
+
+  nodeSelector:
+    key: 'karpenter.sh/nodepool'
+    value: 'default'
+
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: 'topology.kubernetes.io/zone'
+      whenUnsatisfiable: DoNotSchedule
+      labelSelector:
+        matchLabels:
+          app: 'stepshop-aps'
+          tier: worker
+    - maxSkew: 1
+      topologyKey: 'kubernetes.io/hostname'
+      whenUnsatisfiable: DoNotSchedule
+      labelSelector:
+        matchLabels:
+          app: 'stepshop-aps'
+          tier: worker
+
+  priorityClassName: 'production-medium'
+  terminationGracePeriodSeconds: 60

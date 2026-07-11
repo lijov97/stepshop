@@ -1,0 +1,11 @@
+ARG BASE_IMAGE
+
+FROM $BASE_IMAGE
+
+ARG STEPORA_PIP_PRIVATE_REPO_URL
+
+WORKDIR /stepora
+
+ADD requirements.txt /stepora/requirements.txt
+
+RUN pip3.7 install --extra-index-url=STEPORA_PIP_PRIVATE_REPO_URL --no-cache-dir -r requirements.txt

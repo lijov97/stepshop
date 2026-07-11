@@ -1,0 +1,11 @@
+Django==3.2.13
+psycopg2-binary
+django-environ
+whitenoise
+celery[sqs]
+boto3
+django_storages
+pillow
+gunicorn==20.1.0
+requests
+django-celery-beat

@@ -1,0 +1,5 @@
+users:
+  - service_account:
+      create: 'true'
+      name: 'stepora-stepshop-aps-vault'
+      namespace: 'stepshop-aps'

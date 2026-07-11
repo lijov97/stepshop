@@ -1,0 +1,104 @@
+namespace: 'stepshop-aps'
+
+app_name: 'stepshop-aps'
+environment: 'production'
+
+service:
+  name: 'stepshop-aps-nginx'
+  default:
+    port: 80
+    protocol: 'TCP'
+    targetPort: 80
+  https:
+    port: 443
+    protocol: 'TCP'
+    targetPort: 80
+
+hpa:
+  name: 'stepshop-aps-nginx-hpa'
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+
+pdb:
+  name: 'stepshop-aps-nginx-pdb'
+  minAvailable: 50%
+
+deployment:
+  name: 'stepshop-aps-nginx-deployment'
+  replicas: 5
+  maxSurge: 100%
+  maxUnavailable: 50%
+
+  containers:
+    default:
+      name: 'nginx'
+      imagePullPolicy: 'Always'
+      image: '500645089924.dkr.ecr.ap-south-1.amazonaws.com/production/stepora/stepshop-aps/backend-nginx:[BUILD_TAG]'
+      command: '["sh", "-c", "/stepora/nginx/entrypoint.sh"]'
+      port: 80
+      memory:
+        requests: 64Mi
+        limits: 128Mi
+      cpu:
+        requests: 10m
+        limits: 100m
+      health:
+        path: '/nginx-health'
+        port: 80
+        scheme: 'HTTP'
+      startupProbe:
+        initialDelaySeconds: 3
+        periodSeconds: 5
+        timeoutSeconds: 2
+        successThreshold: 1
+        failureThreshold: 5
+      readinessProbe:
+        initialDelaySeconds: 0
+        periodSeconds: 5
+        timeoutSeconds: 2
+        successThreshold: 1
+        failureThreshold: 3
+      livenessProbe:
+        initialDelaySeconds: 0
+        periodSeconds: 5
+        timeoutSeconds: 2
+        successThreshold: 1
+        failureThreshold: 4
+
+  volumes:
+    local:
+      - name: 'stepora-stepshop-aps-production-nginx-logs'
+        mountPath: '/var/log/nginx/'
+        hostPath: '/home/ec2-user/stepora-logs/stepora-stepshop-aps-production/nginx'
+
+  initContainers:
+    app:
+      - image: '500645089924.dkr.ecr.ap-south-1.amazonaws.com/production/k8s/official/busybox:1.31.1'
+        host: 'stepshop-aps-app'
+        name: 'init-app'
+        port: 8000
+        healthPath: '/health'
+
+  nodeSelector:
+    key: 'karpenter.sh/nodepool'
+    value: 'default'
+
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: 'topology.kubernetes.io/zone'
+      whenUnsatisfiable: DoNotSchedule
+      labelSelector:
+        matchLabels:
+          app: 'stepshop-aps'
+          tier: nginx
+    - maxSkew: 1
+      topologyKey: 'kubernetes.io/hostname'
+      whenUnsatisfiable: DoNotSchedule
+      labelSelector:
+        matchLabels:
+          app: 'stepshop-aps'
+          tier: nginx
+
+  priorityClassName: 'production-medium'
+  terminationGracePeriodSeconds: 100

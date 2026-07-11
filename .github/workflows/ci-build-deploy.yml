@@ -1,0 +1,288 @@
+name: CI/Build/Terraform/Deploy (consolidated)
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'stepshop/**'
+      - 'photos/**'
+      - 'deployment/**'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - '.github/workflows/ci-build-deploy.yml'
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1  # Replace with your AWS region
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+  ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+  IMAGE_NAMESPACE: stepshop-aps
+  EKS_CLUSTER_NAME: stepshop-aps-prod  # Replace with your EKS cluster name
+  EKS_NAMESPACE: production
+
+permissions:
+  contents: read
+  id-token: write        # Required for OIDC
+  packages: write
+
+jobs:
+  # ============================================================================
+  # Step 1: CI - Tests & Lint
+  # ============================================================================
+  test-and-lint:
+    name: Test & Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install flake8
+
+      - name: Run flake8 lint
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+      - name: Run Django tests
+        env:
+          DJANGO_SETTINGS_MODULE: stepshop.settings
+        run: python manage.py test
+
+  # ============================================================================
+  # Step 2: Build & Push Docker Images to AWS ECR
+  # ============================================================================
+  build-and-push:
+    name: Build & Push Docker Images
+    needs: test-and-lint
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    outputs:
+      image-tag: ${{ env.IMAGE_TAG }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set image tag
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" || "${{ github.ref }}" == "refs/heads/master" ]]; then
+            echo "IMAGE_TAG=sha-${GITHUB_SHA::8}" >> $GITHUB_ENV
+            echo "IMAGE_LATEST=true" >> $GITHUB_ENV
+          else
+            echo "IMAGE_TAG=sha-${GITHUB_SHA::8}" >> $GITHUB_ENV
+            echo "IMAGE_LATEST=false" >> $GITHUB_ENV
+          fi
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build and push app image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: deployment/app/Dockerfile
+          push: true
+          tags: |
+            ${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/app:${{ env.IMAGE_TAG }}
+            ${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/app:latest
+          cache-from: type=registry,ref=${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/app:cache
+          cache-to: type=registry,ref=${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/app:cache,mode=max
+
+      - name: Build and push nginx image
+        uses: docker/build-push-action@v5
+        with:
+          context: deployment/nginx/stepshop-aps
+          file: deployment/nginx/stepshop-aps/Dockerfile
+          push: true
+          tags: |
+            ${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/nginx:${{ env.IMAGE_TAG }}
+            ${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/nginx:latest
+          cache-from: type=registry,ref=${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/nginx:cache
+          cache-to: type=registry,ref=${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/nginx:cache,mode=max
+
+      - name: Build and push worker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: deployment/app/Dockerfile
+          push: true
+          build-args: |
+            ENTRYPOINT=worker-entrypoint.sh
+          tags: |
+            ${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/worker:${{ env.IMAGE_TAG }}
+            ${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/worker:latest
+          cache-from: type=registry,ref=${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/worker:cache
+          cache-to: type=registry,ref=${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/worker:cache,mode=max
+
+  # ============================================================================
+  # Step 3: Terraform Plan/Apply
+  # ============================================================================
+  terraform:
+    name: Terraform (Infrastructure)
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'push' && contains(github.event.head_commit.modified, 'deployment')) ||
+      (github.event_name == 'pull_request' && contains(github.event.pull_request.files[*].filename, 'deployment')) ||
+      github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      - name: Terraform Init
+        working-directory: deployment/values/stepshop-aps/production/terraform
+        env:
+          AWS_REGION: ${{ env.AWS_REGION }}
+        run: terraform init -input=false
+
+      - name: Terraform Validate
+        working-directory: deployment/values/stepshop-aps/production/terraform
+        run: terraform validate
+
+      - name: Terraform Plan
+        if: github.event_name == 'pull_request'
+        working-directory: deployment/values/stepshop-aps/production/terraform
+        run: terraform plan -no-color -out=tfplan
+
+      - name: Upload Terraform Plan
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: deployment/values/stepshop-aps/production/terraform/tfplan
+          retention-days: 5
+
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        working-directory: deployment/values/stepshop-aps/production/terraform
+        run: terraform apply -auto-approve
+
+  # ============================================================================
+  # Step 4: Helm Deploy to EKS
+  # ============================================================================
+  deploy-helm:
+    name: Deploy to EKS (Helm)
+    needs: [build-and-push, terraform]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig \
+            --name ${{ env.EKS_CLUSTER_NAME }} \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v3
+
+      - name: Create namespace if not exists
+        run: kubectl create namespace ${{ env.EKS_NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Add ECR credentials to EKS
+        run: |
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.ECR_REGISTRY }}
+          kubectl create secret docker-registry ecr-cred \
+            --docker-server=${{ env.ECR_REGISTRY }} \
+            --docker-username=AWS \
+            --docker-password=$(aws ecr get-login-password --region ${{ env.AWS_REGION }}) \
+            --namespace ${{ env.EKS_NAMESPACE }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Deploy/Upgrade Helm chart (app)
+        run: |
+          helm upgrade --install stepshop-aps \
+            -f deployment/values/stepshop-aps/production/helm/values-app.yaml \
+            -f deployment/values/stepshop-aps/production/helm/values-ingress.yaml \
+            --set image.repository=${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/app \
+            --set image.tag=${{ needs.build-and-push.outputs.image-tag }} \
+            --set imagePullSecrets[0].name=ecr-cred \
+            --namespace ${{ env.EKS_NAMESPACE }} \
+            --create-namespace \
+            --wait \
+            ./helm-chart-path
+
+      - name: Deploy/Upgrade Helm chart (nginx)
+        run: |
+          helm upgrade --install stepshop-aps-nginx \
+            -f deployment/values/stepshop-aps/production/helm/values-nginx.yaml \
+            --set image.repository=${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/nginx \
+            --set image.tag=${{ needs.build-and-push.outputs.image-tag }} \
+            --set imagePullSecrets[0].name=ecr-cred \
+            --namespace ${{ env.EKS_NAMESPACE }} \
+            --create-namespace \
+            --wait \
+            ./helm-chart-path-nginx
+
+      - name: Deploy/Upgrade Helm chart (worker)
+        run: |
+          helm upgrade --install stepshop-aps-worker \
+            -f deployment/values/stepshop-aps/production/helm/values-worker.yaml \
+            --set image.repository=${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/worker \
+            --set image.tag=${{ needs.build-and-push.outputs.image-tag }} \
+            --set imagePullSecrets[0].name=ecr-cred \
+            --namespace ${{ env.EKS_NAMESPACE }} \
+            --create-namespace \
+            --wait \
+            ./helm-chart-path-worker
+
+      - name: Verify deployment
+        run: |
+          kubectl get deployments -n ${{ env.EKS_NAMESPACE }}
+          kubectl get pods -n ${{ env.EKS_NAMESPACE }}
