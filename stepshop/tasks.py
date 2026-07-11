@@ -1,7 +1,7 @@
 import logging
 import time
 
-from django_aws import celery
+from stepshop import celery
 
 
 @celery.app.task()
