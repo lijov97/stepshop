@@ -82,7 +82,7 @@ WSGI_APPLICATION = 'stepshop.wsgi.application'
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
 DATABASES = {
-    'default': env.db(default="postgresql://postgres:postgres@127.0.0.1:5432/stepshop")
+    'default': env.db(default="postgresql://postgres:postgres@0.0.0.0:5432/stepshop")
 }
 
 
