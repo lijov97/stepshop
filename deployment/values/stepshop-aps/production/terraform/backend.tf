@@ -1,6 +1,6 @@
 terraform {
   backend "s3" {
-    use_lockfile = "true"
+    dynamodb_table = "stepora-production-terraform-state-tf"
 
     region = "us-east-1"
     bucket = "stepora-production-terraform-state-tf"
