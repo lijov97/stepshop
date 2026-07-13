@@ -10,7 +10,7 @@ RUN chown -R stepora /stepora
 ENV PATH "$PATH:/stepora/.local/bin"
 
 # Add packages to the image
-ADD ./deployment/app/packages/apk/base /stepora/packages/apk/base
+#ADD ./deployment/app/packages/apk/base /stepora/packages/apk/base
 #    apk add --no-cache bash=5.1.16-r2 postgresql13-dev=13.13-r0 librdkafka-dev=1.8.2-r0
 
 # Install dependencies
