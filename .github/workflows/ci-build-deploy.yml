@@ -124,12 +124,40 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      - name: Build and push base image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: deployment/app/Dockerfile.base
+          push: true
+          tags: |
+            ${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/base:${{ env.IMAGE_TAG }}
+            ${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/base:latest
+          cache-from: type=registry,ref=${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/base:cache
+          cache-to: type=registry,ref=${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/base:cache,mode=max
+
+      - name: Build and push requirements image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: deployment/app/Dockerfile.req
+          push: true
+          build-args: |
+            BASE_IMAGE=${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/base:${{ env.IMAGE_TAG }}
+          tags: |
+            ${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/req:${{ env.IMAGE_TAG }}
+            ${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/req:latest
+          cache-from: type=registry,ref=${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/req:cache
+          cache-to: type=registry,ref=${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/req:cache,mode=max
+
       - name: Build and push app image
         uses: docker/build-push-action@v5
         with:
           context: .
           file: deployment/app/Dockerfile
           push: true
+          build-args: |
+            REQ_IMAGE=${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/req:${{ env.IMAGE_TAG }}
           tags: |
             ${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/app:${{ env.IMAGE_TAG }}
             ${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/app:latest
@@ -155,6 +183,7 @@ jobs:
           file: deployment/app/Dockerfile
           push: true
           build-args: |
+            REQ_IMAGE=${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/req:${{ env.IMAGE_TAG }}
             ENTRYPOINT=worker-entrypoint.sh
           tags: |
             ${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/worker:${{ env.IMAGE_TAG }}
