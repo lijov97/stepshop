@@ -16,7 +16,6 @@ RUN yum update -y && \
         gcc-c++ \
         make \
         postgresql-devel \
-        librdkafka-devel \
         shadow-utils && \
     yum clean all && \
     rm -rf /var/cache/yum
