@@ -225,7 +225,6 @@ jobs:
     name: Deploy to EKS (Helm)
     needs: [build-and-push, terraform]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment:
       name: production
     steps:
