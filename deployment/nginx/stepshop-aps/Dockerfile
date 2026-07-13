@@ -1,13 +1,12 @@
-ARG BASE_IMAGE
+FROM nginx:1.27-alpine
 
-FROM $BASE_IMAGE
+ARG ENVIRONMENT=production
 
-ARG ENVIRONMENT
+COPY ${ENVIRONMENT}/nginx.conf /etc/nginx/nginx.conf
+COPY ${ENVIRONMENT}/templates/ /etc/nginx/templates/
 
-ADD ./${ENVIRONMENT}/templates /stepora/nginx/templates
-COPY ./${ENVIRONMENT}/nginx.conf /stepora/nginx/conf/nginx.conf
-
-# Overwrite default one
 COPY entrypoint.sh entrypoint.sh
-RUN chmod +x entrypoint.sh
-CMD ./entrypoint.sh
+
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]

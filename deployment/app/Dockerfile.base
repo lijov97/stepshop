@@ -18,3 +18,16 @@ RUN apk update && \
     apk add --no-cache --no-network /stepora/packages/apk/base/* && \
     pip3.7 install --no-cache-dir --upgrade pip==22.0.4 && \
     rm -rf /stepora/packages/apk
+
+WORKDIR /stepora
+
+ADD requirements.txt /stepora/requirements.txt
+
+RUN pip3.7 install --no-cache-dir -r requirements.txt
+WORKDIR /
+
+ADD ./ /stepora
+
+EXPOSE 8000
+
+ENV C_FORCE_ROOT=1
