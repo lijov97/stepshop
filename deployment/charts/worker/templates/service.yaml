@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.service.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.app_name }}
+    tier: worker
+spec:
+  selector:
+    app: {{ .Values.app_name }}
+    tier: worker
+    name: {{ .Values.deployment.containers.default.name }}
+  ports:
+    - port: {{ .Values.service.default.port }}
+      protocol: {{ .Values.service.default.protocol }}
+      targetPort: {{ .Values.service.default.targetPort }}

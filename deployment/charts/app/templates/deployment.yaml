@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.deployment.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.app_name }}
+    tier: app
+    environment: {{ .Values.environment }}
+spec:
+  replicas: {{ .Values.deployment.replicas }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: {{ .Values.deployment.maxSurge }}
+      maxUnavailable: {{ .Values.deployment.maxUnavailable }}
+  selector:
+    matchLabels:
+      app: {{ .Values.app_name }}
+      tier: app
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.app_name }}
+        tier: app
+        environment: {{ .Values.environment }}
+    spec:
+      {{- if .Values.deployment.serviceAccountName }}
+      serviceAccountName: {{ .Values.deployment.serviceAccountName }}
+      {{- end }}
+      {{- if .Values.deployment.priorityClassName }}
+      priorityClassName: {{ .Values.deployment.priorityClassName }}
+      {{- end }}
+      {{- if .Values.deployment.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds: {{ .Values.deployment.terminationGracePeriodSeconds }}
+      {{- end }}
+      {{- if .Values.deployment.nodeSelector }}
+      nodeSelector:
+        {{ .Values.deployment.nodeSelector.key }}: {{ .Values.deployment.nodeSelector.value }}
+      {{- end }}
+      {{- if .Values.deployment.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml .Values.deployment.topologySpreadConstraints | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Values.deployment.containers.default.name }}
+          image: {{ .Values.deployment.containers.default.image }}
+          imagePullPolicy: {{ .Values.deployment.containers.default.imagePullPolicy }}
+          command:
+            {{- toYaml (fromJson .Values.deployment.containers.default.command) | nindent 12 }}
+          {{- if .Values.deployment.containers.default.env }}
+          env:
+            {{- toYaml .Values.deployment.containers.default.env | nindent 12 }}
+          {{- end }}
+          ports:
+            - containerPort: {{ .Values.deployment.containers.default.port }}
+          resources:
+            requests:
+              memory: {{ .Values.deployment.containers.default.memory.requests }}
+              cpu: {{ .Values.deployment.containers.default.cpu.requests }}
+            limits:
+              memory: {{ .Values.deployment.containers.default.memory.limits }}
+              {{- if .Values.deployment.containers.default.cpu.limits }}
+              cpu: {{ .Values.deployment.containers.default.cpu.limits }}
+              {{- end }}
+          {{- if .Values.deployment.containers.default.health }}
+          startupProbe:
+            httpGet:
+              path: {{ .Values.deployment.containers.default.health.path }}
+              port: {{ .Values.deployment.containers.default.health.port }}
+              scheme: {{ .Values.deployment.containers.default.health.scheme }}
+            initialDelaySeconds: {{ .Values.deployment.containers.default.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.deployment.containers.default.startupProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.deployment.containers.default.startupProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.deployment.containers.default.startupProbe.successThreshold }}
+            failureThreshold: {{ .Values.deployment.containers.default.startupProbe.failureThreshold }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.deployment.containers.default.health.path }}
+              port: {{ .Values.deployment.containers.default.health.port }}
+              scheme: {{ .Values.deployment.containers.default.health.scheme }}
+            initialDelaySeconds: {{ .Values.deployment.containers.default.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.deployment.containers.default.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.deployment.containers.default.readinessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.deployment.containers.default.readinessProbe.successThreshold }}
+            failureThreshold: {{ .Values.deployment.containers.default.readinessProbe.failureThreshold }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.deployment.containers.default.health.path }}
+              port: {{ .Values.deployment.containers.default.health.port }}
+              scheme: {{ .Values.deployment.containers.default.health.scheme }}
+            initialDelaySeconds: {{ .Values.deployment.containers.default.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.deployment.containers.default.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.deployment.containers.default.livenessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.deployment.containers.default.livenessProbe.successThreshold }}
+            failureThreshold: {{ .Values.deployment.containers.default.livenessProbe.failureThreshold }}
+          {{- end }}
+          {{- if .Values.deployment.containers.default.volumeMounts }}
+          volumeMounts:
+            {{- toYaml .Values.deployment.containers.default.volumeMounts | nindent 12 }}
+          {{- end }}
+      {{- if .Values.deployment.volumes }}
+      volumes:
+        {{- toYaml .Values.deployment.volumes | nindent 8 }}
+      {{- end }}

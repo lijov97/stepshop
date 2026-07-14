@@ -1,0 +1,55 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Values.job.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.app_name }}
+    tier: migration
+spec:
+  backoffLimit: {{ .Values.job.backoffLimit }}
+  activeDeadlineSeconds: {{ .Values.job.activeDeadlineSeconds }}
+  ttlSecondsAfterFinished: {{ .Values.job.ttlSecondsAfterFinished }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.app_name }}
+        tier: migration
+    spec:
+      {{- if .Values.job.serviceAccountName }}
+      serviceAccountName: {{ .Values.job.serviceAccountName }}
+      {{- end }}
+      {{- if .Values.job.priorityClassName }}
+      priorityClassName: {{ .Values.job.priorityClassName }}
+      {{- end }}
+      restartPolicy: {{ .Values.job.restartPolicy }}
+      {{- if .Values.job.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds: {{ .Values.job.terminationGracePeriodSeconds }}
+      {{- end }}
+      {{- if .Values.job.nodeSelector }}
+      nodeSelector:
+        {{ .Values.job.nodeSelector.key }}: {{ .Values.job.nodeSelector.value }}
+      {{- end }}
+      containers:
+        {{- range .Values.job.containers }}
+        - name: {{ .name }}
+          image: {{ .image }}
+          imagePullPolicy: {{ .imagePullPolicy }}
+          command:
+            {{- toYaml (fromJson .command) | nindent 12 }}
+          resources:
+            requests:
+              memory: {{ .memory.requests }}
+              cpu: {{ .cpu.requests }}
+            limits:
+              memory: {{ .memory.limits }}
+              cpu: {{ .cpu.limits }}
+          {{- if .volumeMounts }}
+          volumeMounts:
+            {{- toYaml .volumeMounts | nindent 12 }}
+          {{- end }}
+        {{- end }}
+      {{- if .Values.job.volumes }}
+      volumes:
+        {{- toYaml .Values.job.volumes | nindent 8 }}
+      {{- end }}

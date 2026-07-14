@@ -1,0 +1,15 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ .Values.pdb.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.app_name }}
+    tier: worker
+spec:
+  minAvailable: {{ .Values.pdb.minAvailable | quote }}
+  selector:
+    matchLabels:
+      app: {{ .Values.app_name }}
+      tier: worker
+      name: {{ .Values.deployment.containers.default.name }}

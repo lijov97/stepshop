@@ -269,7 +269,7 @@ jobs:
             --namespace ${{ env.EKS_NAMESPACE }} \
             --create-namespace \
             --wait \
-            ./helm-chart-path
+            deployment/charts/app
 
       - name: Deploy/Upgrade Helm chart (nginx)
         run: |
@@ -281,7 +281,7 @@ jobs:
             --namespace ${{ env.EKS_NAMESPACE }} \
             --create-namespace \
             --wait \
-            ./helm-chart-path-nginx
+            deployment/charts/nginx
 
       - name: Deploy/Upgrade Helm chart (worker)
         run: |
@@ -293,7 +293,7 @@ jobs:
             --namespace ${{ env.EKS_NAMESPACE }} \
             --create-namespace \
             --wait \
-            ./helm-chart-path-worker
+            deployment/charts/worker
 
       - name: Verify deployment
         run: |

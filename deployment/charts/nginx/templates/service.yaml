@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.service.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.app_name }}
+    tier: nginx
+spec:
+  selector:
+    app: {{ .Values.app_name }}
+    tier: nginx
+  ports:
+    - name: http
+      port: {{ .Values.service.default.port }}
+      protocol: {{ .Values.service.default.protocol }}
+      targetPort: {{ .Values.service.default.targetPort }}
+    {{- if .Values.service.https }}
+    - name: https
+      port: {{ .Values.service.https.port }}
+      protocol: {{ .Values.service.https.protocol }}
+      targetPort: {{ .Values.service.https.targetPort }}
+    {{- end }}

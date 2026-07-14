@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.deployment.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.app_name }}
+    tier: worker
+    environment: {{ .Values.environment }}
+spec:
+  replicas: {{ .Values.deployment.replicas }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: {{ .Values.deployment.maxSurge }}
+      maxUnavailable: {{ .Values.deployment.maxUnavailable }}
+  selector:
+    matchLabels:
+      app: {{ .Values.app_name }}
+      tier: worker
+      name: {{ .Values.deployment.containers.default.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.app_name }}
+        tier: worker
+        name: {{ .Values.deployment.containers.default.name }}
+        environment: {{ .Values.environment }}
+    spec:
+      {{- if .Values.deployment.serviceAccountName }}
+      serviceAccountName: {{ .Values.deployment.serviceAccountName }}
+      {{- end }}
+      {{- if .Values.deployment.priorityClassName }}
+      priorityClassName: {{ .Values.deployment.priorityClassName }}
+      {{- end }}
+      {{- if .Values.deployment.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds: {{ .Values.deployment.terminationGracePeriodSeconds }}
+      {{- end }}
+      {{- if .Values.deployment.nodeSelector }}
+      nodeSelector:
+        {{ .Values.deployment.nodeSelector.key }}: {{ .Values.deployment.nodeSelector.value }}
+      {{- end }}
+      {{- if .Values.deployment.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml .Values.deployment.topologySpreadConstraints | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Values.deployment.containers.default.name }}
+          image: {{ .Values.deployment.containers.default.image }}
+          imagePullPolicy: {{ .Values.deployment.containers.default.imagePullPolicy }}
+          command:
+            {{- toYaml (fromJson .Values.deployment.containers.default.command) | nindent 12 }}
+          resources:
+            requests:
+              memory: {{ .Values.deployment.containers.default.memory.requests }}
+              cpu: {{ .Values.deployment.containers.default.cpu.requests }}
+            limits:
+              memory: {{ .Values.deployment.containers.default.memory.limits }}
+          {{- if .Values.deployment.containers.default.volumeMounts }}
+          volumeMounts:
+            {{- toYaml .Values.deployment.containers.default.volumeMounts | nindent 12 }}
+          {{- end }}
+      {{- if .Values.deployment.volumes }}
+      volumes:
+        {{- toYaml .Values.deployment.volumes | nindent 8 }}
+      {{- end }}
