@@ -24,7 +24,7 @@ env:
   ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
   IMAGE_NAMESPACE: stepshop-aps
   EKS_CLUSTER_NAME: stepshop-aps-prod-v2  # Replace with your EKS cluster name
-  EKS_NAMESPACE: production
+  EKS_NAMESPACE: stepshop-aps
 
 permissions:
   contents: read
