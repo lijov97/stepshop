@@ -47,7 +47,7 @@ spec:
           image: {{ .Values.deployment.containers.default.image }}
           imagePullPolicy: {{ .Values.deployment.containers.default.imagePullPolicy }}
           command:
-            {{ - toYaml .Values.deployment.containers.default.command | nindent 12 }}
+            {{- toYaml .Values.deployment.containers.default.command | nindent 12 }}
           {{- if .Values.deployment.containers.default.env }}
           env:
             {{- toYaml .Values.deployment.containers.default.env | nindent 12 }}
