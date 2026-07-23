@@ -35,10 +35,10 @@ spec:
         - name: {{ .name }}
           image: {{ .image }}
           imagePullPolicy: {{ .imagePullPolicy }}
-          { { - if .command } }
-            command:
-          { { fromJson .command | toYaml | nindent 12 } }
-          { { - end } }
+          {{- if .command }}
+          command:
+          {{ fromJson .command | toYaml | nindent 12 }}
+          {{- end }}
           resources:
             requests:
               memory: {{ .memory.requests }}
