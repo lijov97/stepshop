@@ -11,7 +11,7 @@ on:
         default: 'stepshop'
         options:
           - stepshop
-          - stepshop-aps
+          - stepshop
       environment:
         description: 'Environment'
         required: true

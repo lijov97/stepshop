@@ -5,6 +5,6 @@ terraform {
     region = "us-east-1"
     bucket = "stepora-production-terraform-state-tf-bucket"
 
-    key = "stepora/production/applications-v2/eks-v2/stepshop-aps.tfstate"
+    key = "stepora/production/applications-v2/eks-v2/stepshop.tfstate"
   }
 }

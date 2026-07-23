@@ -1,37 +1,37 @@
-namespace: 'stepshop-aps'
+namespace: 'stepshop'
 
-app_name: 'stepshop-aps'
+app_name: 'stepshop'
 environment: 'production'
 
 service:
-  name: 'stepshop-aps-cron'
+  name: 'stepshop-cron'
   default:
     port: 8000
     protocol: 'TCP'
     targetPort: 8000
 
 hpa:
-  name: 'stepshop-aps-cron-hpa'
+  name: 'stepshop-cron-hpa'
   minReplicas: 1
   maxReplicas: 1
   targetCPUUtilizationPercentage: 80
 
 pdb:
-  name: 'stepshop-aps-cron-pdb'
+  name: 'stepshop-cron-pdb'
   minAvailable: 0%
 
 deployment:
-  name: 'stepshop-aps-cron-deployment'
+  name: 'stepshop-cron-deployment'
   replicas: 1
   maxSurge: 100%
   maxUnavailable: 0%
-  serviceAccountName: 'stepora-stepshop-aps-vault'
+  serviceAccountName: 'stepora-stepshop-vault'
 
   containers:
     default:
       name: 'cron'
       imagePullPolicy: 'Always'
-      image: '211535858832.dkr.ecr.ap-south-1.amazonaws.com/production/stepora/stepshop-aps/backend-app:[BUILD_TAG]'
+      image: '211535858832.dkr.ecr.ap-south-1.amazonaws.com/production/stepora/stepshop/backend-app:[BUILD_TAG]'
       command: '["sh", "-c", "/bin/cp -f /vault/secrets/application.env /etc/profile.d/application-env.sh ; source /etc/profile.d/application-env.sh ; sh /stepora/deployment/app/cron-entrypoint.sh"]'
       memory:
         requests: 200Mi
@@ -40,28 +40,28 @@ deployment:
         requests: 50m
       volumeMounts:
         - mountPath: '/stepora/logs/'
-          name: 'stepora-stepshop-aps-production-cron-logs'
-        - name: 'stepshop-aps-app-env-volume'
+          name: 'stepora-stepshop-production-cron-logs'
+        - name: 'stepshop-app-env-volume'
           mountPath: "/vault/secrets"
-        - name: 'stepshop-aps-certs-msk-volume'
+        - name: 'stepshop-certs-msk-volume'
           mountPath: "/stepora/certs/msk"
 
   volumes:
-    - name: 'stepora-stepshop-aps-production-cron-logs'
+    - name: 'stepora-stepshop-production-cron-logs'
       hostPath:
-        path: '/home/ec2-user/stepora-logs/stepora-stepshop-aps-production/cron'
-    - name: 'stepshop-aps-app-env-volume'
+        path: '/home/ec2-user/stepora-logs/stepora-stepshop-production/cron'
+    - name: 'stepshop-app-env-volume'
       csi:
         driver: secrets-store.csi.k8s.io
         readOnly: true
         volumeAttributes:
-          secretProviderClass: "stepshop-aps-envs"
-    - name: 'stepshop-aps-certs-msk-volume'
+          secretProviderClass: "stepshop-envs"
+    - name: 'stepshop-certs-msk-volume'
       csi:
         driver: secrets-store.csi.k8s.io
         readOnly: true
         volumeAttributes:
-          secretProviderClass: "stepshop-aps-certs-msk"
+          secretProviderClass: "stepshop-certs-msk"
 
   nodeSelector:
     key: 'karpenter.sh/nodepool'
@@ -73,14 +73,14 @@ deployment:
       whenUnsatisfiable: DoNotSchedule
       labelSelector:
         matchLabels:
-          app: 'stepshop-aps'
+          app: 'stepshop'
           tier: cron
     - maxSkew: 1
       topologyKey: 'kubernetes.io/hostname'
       whenUnsatisfiable: DoNotSchedule
       labelSelector:
         matchLabels:
-          app: 'stepshop-aps'
+          app: 'stepshop'
           tier: cron
 
   priorityClassName: 'production-medium'

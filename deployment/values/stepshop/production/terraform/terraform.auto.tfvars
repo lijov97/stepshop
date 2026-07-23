@@ -4,10 +4,10 @@ application_access_control_charts = [
   {
     create_helm_release = true
 
-    namespace        = "stepshop-aps"
+    namespace        = "stepshop"
     create_namespace = false
     repository       = "oci://211535858832.dkr.ecr.us-east-1.amazonaws.com/production/helm/stepora"
-    release_name     = "stepshop-aps-users"
+    release_name     = "stepshop-users"
     chart            = "users"
     version          = "1.0.0"
     wait             = true
@@ -18,14 +18,14 @@ application_access_control_charts = [
 ]
 # Variables for K8s secret provider class
 application_secret_provider_class_charts = [
-  # stepshop-aps-envs
+  # stepshop-envs
   {
     create_helm_release = true
 
-    namespace        = "stepshop-aps"
+    namespace        = "stepshop"
     create_namespace = false
     repository       = "oci://211535858832.dkr.ecr.us-east-1.amazonaws.com/production/helm/stepora"
-    release_name     = "stepshop-aps-spc"
+    release_name     = "stepshop-spc"
     chart            = "secret-provider-class"
     version          = "1.0.2"
     wait             = true
@@ -41,10 +41,10 @@ application_migration_charts = [
   {
     create_helm_release = true
 
-    namespace        = "stepshop-aps"
+    namespace        = "stepshop"
     create_namespace = false
     repository       = "oci://211535858832.dkr.ecr.us-east-1.amazonaws.com/production/helm/stepora"
-    release_name     = "stepshop-aps-migration"
+    release_name     = "stepshop-migration"
     chart            = "migration"
     version          = "1.0.3"
     timeout          = 600
@@ -57,10 +57,10 @@ application_migration_charts = [
   {
     create_helm_release = true
 
-    namespace        = "stepshop-aps"
+    namespace        = "stepshop"
     create_namespace = false
     repository       = "oci://211535858832.dkr.ecr.us-east-1.amazonaws.com/production/helm/stepora"
-    release_name     = "stepshop-aps-collectstatic"
+    release_name     = "stepshop-collectstatic"
     chart            = "collectstatic"
     version          = "1.0.3"
     timeout          = 900
@@ -78,10 +78,10 @@ application_charts = [
   {
     create_helm_release = true
 
-    namespace        = "stepshop-aps"
+    namespace        = "stepshop"
     create_namespace = false
     repository       = "oci://211535858832.dkr.ecr.us-east-1.amazonaws.com/production/helm/stepora"
-    release_name     = "stepshop-aps-app"
+    release_name     = "stepshop-app"
     chart            = "app"
     version          = "1.0.3"
     timeout          = 600
@@ -93,10 +93,10 @@ application_charts = [
   {
     create_helm_release = true
 
-    namespace        = "stepshop-aps"
+    namespace        = "stepshop"
     create_namespace = false
     repository       = "oci://211535858832.dkr.ecr.us-east-1.amazonaws.com/production/helm/stepora"
-    release_name     = "stepshop-aps-cron"
+    release_name     = "stepshop-cron"
     chart            = "cron"
     version          = "1.0.2"
     timeout          = 600
@@ -108,10 +108,10 @@ application_charts = [
   {
     create_helm_release = true
 
-    namespace        = "stepshop-aps"
+    namespace        = "stepshop"
     create_namespace = false
     repository       = "oci://211535858832.dkr.ecr.us-east-1.amazonaws.com/production/helm/stepora"
-    release_name     = "stepshop-aps-ingress"
+    release_name     = "stepshop-ingress"
     chart            = "ingress"
     version          = "1.0.0"
     timeout          = 600
@@ -123,10 +123,10 @@ application_charts = [
   {
     create_helm_release = true
 
-    namespace        = "stepshop-aps"
+    namespace        = "stepshop"
     create_namespace = false
     repository       = "oci://211535858832.dkr.ecr.us-east-1.amazonaws.com/production/helm/stepora"
-    release_name     = "stepshop-aps-nginx"
+    release_name     = "stepshop-nginx"
     chart            = "nginx"
     version          = "1.0.4"
     timeout          = 600
@@ -138,10 +138,10 @@ application_charts = [
   {
     create_helm_release = true
 
-    namespace        = "stepshop-aps"
+    namespace        = "stepshop"
     create_namespace = false
     repository       = "oci://211535858832.dkr.ecr.us-east-1.amazonaws.com/production/helm/stepora"
-    release_name     = "stepshop-aps-worker"
+    release_name     = "stepshop-worker"
     chart            = "worker"
     version          = "1.0.3"
     timeout          = 600
@@ -153,10 +153,10 @@ application_charts = [
   {
     create_helm_release = true
 
-    namespace        = "stepshop-aps"
+    namespace        = "stepshop"
     create_namespace = false
     repository       = "oci://211535858832.dkr.ecr.us-east-1.amazonaws.com/production/helm/stepora"
-    release_name     = "stepshop-aps-worker-medium"
+    release_name     = "stepshop-worker-medium"
     chart            = "worker"
     version          = "1.0.3"
     timeout          = 600
@@ -168,10 +168,10 @@ application_charts = [
   {
     create_helm_release = true
 
-    namespace        = "stepshop-aps"
+    namespace        = "stepshop"
     create_namespace = false
     repository       = "oci://211535858832.dkr.ecr.us-east-1.amazonaws.com/production/helm/stepora"
-    release_name     = "stepshop-aps-worker-high"
+    release_name     = "stepshop-worker-high"
     chart            = "worker"
     version          = "1.0.3"
     timeout          = 600

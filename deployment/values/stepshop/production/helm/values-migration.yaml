@@ -1,18 +1,18 @@
-namespace: 'stepshop-aps'
+namespace: 'stepshop'
 
-app_name: 'stepshop-aps'
+app_name: 'stepshop'
 
 job:
-  name: 'stepshop-aps-migration-job'
+  name: 'stepshop-migration-job'
   backoffLimit: 0
   activeDeadlineSeconds: 900
   ttlSecondsAfterFinished: 60
-  serviceAccountName: 'stepora-stepshop-aps-vault'
+  serviceAccountName: 'stepora-stepshop-vault'
 
   containers:
     - name: 'migration'
       imagePullPolicy: 'Always'
-      image: '211535858832.dkr.ecr.ap-south-1.amazonaws.com/production/stepora/stepshop-aps/backend-app:[BUILD_TAG]'
+      image: '211535858832.dkr.ecr.ap-south-1.amazonaws.com/production/stepora/stepshop/backend-app:[BUILD_TAG]'
       command: '["sh", "-c", "/bin/cp -f /vault/secrets/application.env /etc/profile.d/application-env.sh ; source /etc/profile.d/application-env.sh ; python3.7 manage.py migrate --noinput >> /stepora/logs/app.out.migration.log 2>&1"]'
       memory:
         requests: 1000Mi
@@ -22,28 +22,28 @@ job:
         limits: 1500m
       volumeMounts:
         - mountPath: '/stepora/logs/'
-          name: 'stepora-stepshop-aps-production-migration-logs'
-        - name: 'stepshop-aps-app-env-volume'
+          name: 'stepora-stepshop-production-migration-logs'
+        - name: 'stepshop-app-env-volume'
           mountPath: "/vault/secrets"
-        - name: 'stepshop-aps-certs-msk-volume'
+        - name: 'stepshop-certs-msk-volume'
           mountPath: "/stepora/certs/msk"
 
   volumes:
-    - name: 'stepora-stepshop-aps-production-migration-logs'
+    - name: 'stepora-stepshop-production-migration-logs'
       hostPath:
-        path: '/home/ec2-user/stepora-logs/stepora-stepshop-aps-production/migration'
-    - name: 'stepshop-aps-app-env-volume'
+        path: '/home/ec2-user/stepora-logs/stepora-stepshop-production/migration'
+    - name: 'stepshop-app-env-volume'
       csi:
         driver: secrets-store.csi.k8s.io
         readOnly: true
         volumeAttributes:
-          secretProviderClass: "stepshop-aps-envs"
-    - name: 'stepshop-aps-certs-msk-volume'
+          secretProviderClass: "stepshop-envs"
+    - name: 'stepshop-certs-msk-volume'
       csi:
         driver: secrets-store.csi.k8s.io
         readOnly: true
         volumeAttributes:
-          secretProviderClass: "stepshop-aps-certs-msk"
+          secretProviderClass: "stepshop-certs-msk"
 
   nodeSelector:
     key: 'karpenter.sh/nodepool'

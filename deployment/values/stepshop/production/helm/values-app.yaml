@@ -1,37 +1,37 @@
-namespace: 'stepshop-aps'
+namespace: 'stepshop'
 
-app_name: 'stepshop-aps'
+app_name: 'stepshop'
 environment: 'production'
 
 service:
-  name: 'stepshop-aps-app'
+  name: 'stepshop-app'
   default:
     port: 8000
     protocol: 'TCP'
     targetPort: 8000
 
 hpa:
-  name: 'stepshop-aps-app-hpa'
+  name: 'stepshop-app-hpa'
   minReplicas: 3
   maxReplicas: 10
   targetCPUUtilizationPercentage: 80
 
 pdb:
-  name: 'stepshop-aps-app-pdb'
+  name: 'stepshop-app-pdb'
   minAvailable: 50%
 
 deployment:
-  name: 'stepshop-aps-app-deployment'
+  name: 'stepshop-app-deployment'
   replicas: 5
   maxSurge: 100%
   maxUnavailable: 50%
-  serviceAccountName: 'stepora-stepshop-aps-vault'
+  serviceAccountName: 'stepora-stepshop-vault'
 
   containers:
     default:
       name: 'app'
       imagePullPolicy: 'Always'
-      image: '211535858832.dkr.ecr.ap-south-1.amazonaws.com/production/stepora/stepshop-aps/backend-app:[BUILD_TAG]'
+      image: '211535858832.dkr.ecr.ap-south-1.amazonaws.com/production/stepora/stepshop/backend-app:[BUILD_TAG]'
       command: '["sh", "-c", "/bin/cp -f /vault/secrets/application.env /etc/profile.d/application-env.sh ; source /etc/profile.d/application-env.sh ; sh /stepora/deployment/app/app-entrypoint.sh"]'
       env:
         - name: 'DJANGO_SETTINGS_MODUL'
@@ -66,28 +66,28 @@ deployment:
         failureThreshold: 4
       volumeMounts:
         - mountPath: '/stepora/logs/'
-          name: 'stepora-stepshop-aps-production-app-logs'
-        - name: 'stepshop-aps-app-env-volume'
+          name: 'stepora-stepshop-production-app-logs'
+        - name: 'stepshop-app-env-volume'
           mountPath: "/vault/secrets"
-        - name: 'stepshop-aps-certs-msk-volume'
+        - name: 'stepshop-certs-msk-volume'
           mountPath: "/stepora/certs/msk"
 
   volumes:
-    - name: 'stepora-stepshop-aps-production-app-logs'
+    - name: 'stepora-stepshop-production-app-logs'
       hostPath:
-        path: '/home/ec2-user/stepora-logs/stepora-stepshop-aps-production/app'
-    - name: 'stepshop-aps-app-env-volume'
+        path: '/home/ec2-user/stepora-logs/stepora-stepshop-production/app'
+    - name: 'stepshop-app-env-volume'
       csi:
         driver: secrets-store.csi.k8s.io
         readOnly: true
         volumeAttributes:
-          secretProviderClass: "stepshop-aps-envs"
-    - name: 'stepshop-aps-certs-msk-volume'
+          secretProviderClass: "stepshop-envs"
+    - name: 'stepshop-certs-msk-volume'
       csi:
         driver: secrets-store.csi.k8s.io
         readOnly: true
         volumeAttributes:
-          secretProviderClass: "stepshop-aps-certs-msk"
+          secretProviderClass: "stepshop-certs-msk"
 
   nodeSelector:
     key: 'karpenter.sh/nodepool'
@@ -99,14 +99,14 @@ deployment:
       whenUnsatisfiable: DoNotSchedule
       labelSelector:
         matchLabels:
-          app: 'stepshop-aps'
+          app: 'stepshop'
           tier: app
     - maxSkew: 1
       topologyKey: 'kubernetes.io/hostname'
       whenUnsatisfiable: DoNotSchedule
       labelSelector:
         matchLabels:
-          app: 'stepshop-aps'
+          app: 'stepshop'
           tier: app
 
   priorityClassName: 'production-medium'

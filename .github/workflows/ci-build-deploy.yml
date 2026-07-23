@@ -22,9 +22,9 @@ env:
   AWS_REGION: us-east-1  # Replace with your AWS region
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
-  IMAGE_NAMESPACE: stepshop-aps
-  EKS_CLUSTER_NAME: stepshop-aps-prod-v2  # Replace with your EKS cluster name
-  EKS_NAMESPACE: stepshop-aps
+  IMAGE_NAMESPACE: stepshop
+  EKS_CLUSTER_NAME: stepshop-prod-v2  # Replace with your EKS cluster name
+  EKS_NAMESPACE: stepshop
 
 permissions:
   contents: read
@@ -139,8 +139,8 @@ jobs:
       - name: Build and push nginx image
         uses: docker/build-push-action@v5
         with:
-          context: deployment/nginx/stepshop-aps
-          file: deployment/nginx/stepshop-aps/Dockerfile
+          context: deployment/nginx/stepshop
+          file: deployment/nginx/stepshop/Dockerfile
           push: true
           tags: |
             ${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/nginx:${{ env.IMAGE_TAG }}
@@ -187,18 +187,18 @@ jobs:
           terraform_version: 1.5.0
 
       - name: Terraform Init
-        working-directory: deployment/values/stepshop-aps/production/terraform
+        working-directory: deployment/values/stepshop/production/terraform
         env:
           AWS_REGION: ${{ env.AWS_REGION }}
         run: terraform init -input=false
 
       - name: Terraform Validate
-        working-directory: deployment/values/stepshop-aps/production/terraform
+        working-directory: deployment/values/stepshop/production/terraform
         run: terraform validate
 
       - name: Terraform Plan
         if: github.event_name == 'pull_request'
-        working-directory: deployment/values/stepshop-aps/production/terraform
+        working-directory: deployment/values/stepshop/production/terraform
         run: terraform plan -no-color -out=tfplan
 
       - name: Upload Terraform Plan
@@ -206,12 +206,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: tfplan
-          path: deployment/values/stepshop-aps/production/terraform/tfplan
+          path: deployment/values/stepshop/production/terraform/tfplan
           retention-days: 5
 
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        working-directory: deployment/values/stepshop-aps/production/terraform
+        working-directory: deployment/values/stepshop/production/terraform
         run: terraform apply -auto-approve
 
   # ============================================================================
@@ -260,9 +260,9 @@ jobs:
 
       - name: Deploy/Upgrade Helm chart (app)
         run: |
-          helm upgrade --install stepshop-aps \
-            -f deployment/values/stepshop-aps/production/helm/values-app.yaml \
-            -f deployment/values/stepshop-aps/production/helm/values-ingress.yaml \
+          helm upgrade --install stepshop \
+            -f deployment/values/stepshop/production/helm/values-app.yaml \
+            -f deployment/values/stepshop/production/helm/values-ingress.yaml \
             --set image.repository=${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/app \
             --set image.tag=${{ needs.build-and-push.outputs.image-tag }} \
             --set imagePullSecrets[0].name=ecr-cred \
@@ -273,8 +273,8 @@ jobs:
 
       - name: Deploy/Upgrade Helm chart (nginx)
         run: |
-          helm upgrade --install stepshop-aps-nginx \
-            -f deployment/values/stepshop-aps/production/helm/values-nginx.yaml \
+          helm upgrade --install stepshop-nginx \
+            -f deployment/values/stepshop/production/helm/values-nginx.yaml \
             --set image.repository=${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/nginx \
             --set image.tag=${{ needs.build-and-push.outputs.image-tag }} \
             --set imagePullSecrets[0].name=ecr-cred \
@@ -285,8 +285,8 @@ jobs:
 
       - name: Deploy/Upgrade Helm chart (worker)
         run: |
-          helm upgrade --install stepshop-aps-worker \
-            -f deployment/values/stepshop-aps/production/helm/values-worker.yaml \
+          helm upgrade --install stepshop-worker \
+            -f deployment/values/stepshop/production/helm/values-worker.yaml \
             --set image.repository=${{ env.ECR_REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/worker \
             --set image.tag=${{ needs.build-and-push.outputs.image-tag }} \
             --set imagePullSecrets[0].name=ecr-cred \

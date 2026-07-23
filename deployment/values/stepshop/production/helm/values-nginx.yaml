@@ -1,10 +1,10 @@
-namespace: 'stepshop-aps'
+namespace: 'stepshop'
 
-app_name: 'stepshop-aps'
+app_name: 'stepshop'
 environment: 'production'
 
 service:
-  name: 'stepshop-aps-nginx'
+  name: 'stepshop-nginx'
   default:
     port: 80
     protocol: 'TCP'
@@ -15,17 +15,17 @@ service:
     targetPort: 80
 
 hpa:
-  name: 'stepshop-aps-nginx-hpa'
+  name: 'stepshop-nginx-hpa'
   minReplicas: 3
   maxReplicas: 10
   targetCPUUtilizationPercentage: 80
 
 pdb:
-  name: 'stepshop-aps-nginx-pdb'
+  name: 'stepshop-nginx-pdb'
   minAvailable: 50%
 
 deployment:
-  name: 'stepshop-aps-nginx-deployment'
+  name: 'stepshop-nginx-deployment'
   replicas: 5
   maxSurge: 100%
   maxUnavailable: 50%
@@ -34,7 +34,7 @@ deployment:
     default:
       name: 'nginx'
       imagePullPolicy: 'Always'
-      image: '211535858832.dkr.ecr.ap-south-1.amazonaws.com/production/stepora/stepshop-aps/backend-nginx:[BUILD_TAG]'
+      image: '211535858832.dkr.ecr.ap-south-1.amazonaws.com/production/stepora/stepshop/backend-nginx:[BUILD_TAG]'
       command: '["sh", "-c", "/stepora/nginx/entrypoint.sh"]'
       port: 80
       memory:
@@ -68,14 +68,14 @@ deployment:
 
   volumes:
     local:
-      - name: 'stepora-stepshop-aps-production-nginx-logs'
+      - name: 'stepora-stepshop-production-nginx-logs'
         mountPath: '/var/log/nginx/'
-        hostPath: '/home/ec2-user/stepora-logs/stepora-stepshop-aps-production/nginx'
+        hostPath: '/home/ec2-user/stepora-logs/stepora-stepshop-production/nginx'
 
   initContainers:
     app:
       - image: '211535858832.dkr.ecr.ap-south-1.amazonaws.com/production/k8s/official/busybox:1.31.1'
-        host: 'stepshop-aps-app'
+        host: 'stepshop-app'
         name: 'init-app'
         port: 8000
         healthPath: '/health'
@@ -90,14 +90,14 @@ deployment:
       whenUnsatisfiable: DoNotSchedule
       labelSelector:
         matchLabels:
-          app: 'stepshop-aps'
+          app: 'stepshop'
           tier: nginx
     - maxSkew: 1
       topologyKey: 'kubernetes.io/hostname'
       whenUnsatisfiable: DoNotSchedule
       labelSelector:
         matchLabels:
-          app: 'stepshop-aps'
+          app: 'stepshop'
           tier: nginx
 
   priorityClassName: 'production-medium'
