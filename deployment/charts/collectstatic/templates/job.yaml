@@ -36,7 +36,7 @@ spec:
           image: {{ .image }}
           imagePullPolicy: {{ .imagePullPolicy }}
           command:
-            {{- toYaml (fromJson .command) | nindent 12 }}
+            {{- toYaml .command | nindent 12 }}
           resources:
             requests:
               memory: {{ .memory.requests }}
