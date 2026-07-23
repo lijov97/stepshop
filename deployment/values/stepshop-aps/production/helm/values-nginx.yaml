@@ -34,7 +34,7 @@ deployment:
     default:
       name: 'nginx'
       imagePullPolicy: 'Always'
-      image: '500645089924.dkr.ecr.ap-south-1.amazonaws.com/production/stepora/stepshop-aps/backend-nginx:[BUILD_TAG]'
+      image: '211535858832.dkr.ecr.ap-south-1.amazonaws.com/production/stepora/stepshop-aps/backend-nginx:[BUILD_TAG]'
       command: '["sh", "-c", "/stepora/nginx/entrypoint.sh"]'
       port: 80
       memory:
@@ -74,7 +74,7 @@ deployment:
 
   initContainers:
     app:
-      - image: '500645089924.dkr.ecr.ap-south-1.amazonaws.com/production/k8s/official/busybox:1.31.1'
+      - image: '211535858832.dkr.ecr.ap-south-1.amazonaws.com/production/k8s/official/busybox:1.31.1'
         host: 'stepshop-aps-app'
         name: 'init-app'
         port: 8000

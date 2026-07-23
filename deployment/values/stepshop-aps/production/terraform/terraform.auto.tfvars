@@ -6,7 +6,7 @@ application_access_control_charts = [
 
     namespace        = "stepshop-aps"
     create_namespace = false
-    repository       = "oci://500645089924.dkr.ecr.us-east-1.amazonaws.com/production/helm/stepora"
+    repository       = "oci://211535858832.dkr.ecr.us-east-1.amazonaws.com/production/helm/stepora"
     release_name     = "stepshop-aps-users"
     chart            = "users"
     version          = "1.0.0"
@@ -24,7 +24,7 @@ application_secret_provider_class_charts = [
 
     namespace        = "stepshop-aps"
     create_namespace = false
-    repository       = "oci://500645089924.dkr.ecr.us-east-1.amazonaws.com/production/helm/stepora"
+    repository       = "oci://211535858832.dkr.ecr.us-east-1.amazonaws.com/production/helm/stepora"
     release_name     = "stepshop-aps-spc"
     chart            = "secret-provider-class"
     version          = "1.0.2"
@@ -43,7 +43,7 @@ application_migration_charts = [
 
     namespace        = "stepshop-aps"
     create_namespace = false
-    repository       = "oci://500645089924.dkr.ecr.us-east-1.amazonaws.com/production/helm/stepora"
+    repository       = "oci://211535858832.dkr.ecr.us-east-1.amazonaws.com/production/helm/stepora"
     release_name     = "stepshop-aps-migration"
     chart            = "migration"
     version          = "1.0.3"
@@ -59,7 +59,7 @@ application_migration_charts = [
 
     namespace        = "stepshop-aps"
     create_namespace = false
-    repository       = "oci://500645089924.dkr.ecr.us-east-1.amazonaws.com/production/helm/stepora"
+    repository       = "oci://211535858832.dkr.ecr.us-east-1.amazonaws.com/production/helm/stepora"
     release_name     = "stepshop-aps-collectstatic"
     chart            = "collectstatic"
     version          = "1.0.3"
@@ -80,7 +80,7 @@ application_charts = [
 
     namespace        = "stepshop-aps"
     create_namespace = false
-    repository       = "oci://500645089924.dkr.ecr.us-east-1.amazonaws.com/production/helm/stepora"
+    repository       = "oci://211535858832.dkr.ecr.us-east-1.amazonaws.com/production/helm/stepora"
     release_name     = "stepshop-aps-app"
     chart            = "app"
     version          = "1.0.3"
@@ -95,7 +95,7 @@ application_charts = [
 
     namespace        = "stepshop-aps"
     create_namespace = false
-    repository       = "oci://500645089924.dkr.ecr.us-east-1.amazonaws.com/production/helm/stepora"
+    repository       = "oci://211535858832.dkr.ecr.us-east-1.amazonaws.com/production/helm/stepora"
     release_name     = "stepshop-aps-cron"
     chart            = "cron"
     version          = "1.0.2"
@@ -110,7 +110,7 @@ application_charts = [
 
     namespace        = "stepshop-aps"
     create_namespace = false
-    repository       = "oci://500645089924.dkr.ecr.us-east-1.amazonaws.com/production/helm/stepora"
+    repository       = "oci://211535858832.dkr.ecr.us-east-1.amazonaws.com/production/helm/stepora"
     release_name     = "stepshop-aps-ingress"
     chart            = "ingress"
     version          = "1.0.0"
@@ -125,7 +125,7 @@ application_charts = [
 
     namespace        = "stepshop-aps"
     create_namespace = false
-    repository       = "oci://500645089924.dkr.ecr.us-east-1.amazonaws.com/production/helm/stepora"
+    repository       = "oci://211535858832.dkr.ecr.us-east-1.amazonaws.com/production/helm/stepora"
     release_name     = "stepshop-aps-nginx"
     chart            = "nginx"
     version          = "1.0.4"
@@ -140,7 +140,7 @@ application_charts = [
 
     namespace        = "stepshop-aps"
     create_namespace = false
-    repository       = "oci://500645089924.dkr.ecr.us-east-1.amazonaws.com/production/helm/stepora"
+    repository       = "oci://211535858832.dkr.ecr.us-east-1.amazonaws.com/production/helm/stepora"
     release_name     = "stepshop-aps-worker"
     chart            = "worker"
     version          = "1.0.3"
@@ -155,7 +155,7 @@ application_charts = [
 
     namespace        = "stepshop-aps"
     create_namespace = false
-    repository       = "oci://500645089924.dkr.ecr.us-east-1.amazonaws.com/production/helm/stepora"
+    repository       = "oci://211535858832.dkr.ecr.us-east-1.amazonaws.com/production/helm/stepora"
     release_name     = "stepshop-aps-worker-medium"
     chart            = "worker"
     version          = "1.0.3"
@@ -170,7 +170,7 @@ application_charts = [
 
     namespace        = "stepshop-aps"
     create_namespace = false
-    repository       = "oci://500645089924.dkr.ecr.us-east-1.amazonaws.com/production/helm/stepora"
+    repository       = "oci://211535858832.dkr.ecr.us-east-1.amazonaws.com/production/helm/stepora"
     release_name     = "stepshop-aps-worker-high"
     chart            = "worker"
     version          = "1.0.3"
