@@ -55,8 +55,8 @@ on:
         type: boolean
 
 env:
-  AWS_REGION: me-central-1
-  ECR_REGISTRY: 500645089924.dkr.ecr.me-central-1.amazonaws.com
+  AWS_REGION: us-east-1
+  ECR_REGISTRY: 500645089924.dkr.ecr.us-east-1.amazonaws.com
   IMAGE_PREFIX: ${{ inputs.environment }}/ygg/${{ inputs.application_name }}
 
 jobs:
