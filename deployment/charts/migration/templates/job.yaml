@@ -36,8 +36,8 @@ spec:
           image: {{ .image }}
           imagePullPolicy: {{ .imagePullPolicy }}
           { { - if .command } }
-          command:
-          { { mustFromJson .command | toYaml | nindent 12 } }
+            command:
+          { { fromJson .command | toYaml | nindent 12 } }
           { { - end } }
           resources:
             requests:
