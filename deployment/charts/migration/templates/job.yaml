@@ -35,8 +35,10 @@ spec:
         - name: {{ .name }}
           image: {{ .image }}
           imagePullPolicy: {{ .imagePullPolicy }}
+          { { - if .command } }
           command:
-            {{- toYaml (fromJson .command) | nindent 12 }}
+          { { mustFromJson .command | toYaml | nindent 12 } }
+          { { - end } }
           resources:
             requests:
               memory: {{ .memory.requests }}
