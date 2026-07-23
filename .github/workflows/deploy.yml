@@ -1,0 +1,333 @@
+name: Build & Deploy Stepshop
+run-name: Deploying ${{ inputs.application_name }} to ${{ inputs.environment }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      application_name:
+        description: 'Application name'
+        required: true
+        type: choice
+        default: 'stepshop'
+        options:
+          - stepshop
+          - stepshop-aps
+      environment:
+        description: 'Environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - sandbox
+          - qa
+      branch:
+        description: 'Branch to deploy'
+        type: string
+        default: 'main'
+      rebuild_req:
+        description: 'Force reinstall requirements (rebuild req image)'
+        required: true
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+      run_migration:
+        description: 'Run database migration'
+        required: true
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+      run_collectstatic:
+        description: 'Run collectstatic'
+        required: true
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+      prod_hotfix_branch:
+        description: 'Deploy Production with hot-fix branch'
+        default: false
+        type: boolean
+
+env:
+  AWS_REGION: me-central-1
+  ECR_REGISTRY: 459037613883.dkr.ecr.me-central-1.amazonaws.com
+  IMAGE_PREFIX: ${{ inputs.environment }}/ygg/${{ inputs.application_name }}
+
+jobs:
+  # ─────────────────────────────────────────────
+  # Build Docker Images
+  # ─────────────────────────────────────────────
+  build:
+    name: Build Images
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    outputs:
+      build_tag: ${{ steps.vars.outputs.build_tag }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch || github.ref }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set build variables
+        id: vars
+        run: |
+          BUILD_TAG="${{ github.sha }}-$(date +%Y%m%d%H%M%S)"
+          echo "build_tag=${BUILD_TAG}" >> $GITHUB_OUTPUT
+          echo "base_image=${{ env.ECR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/backend-base:latest" >> $GITHUB_OUTPUT
+          echo "req_image=${{ env.ECR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/backend-req:latest" >> $GITHUB_OUTPUT
+          echo "app_image=${{ env.ECR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/backend-app:${BUILD_TAG}" >> $GITHUB_OUTPUT
+          echo "nginx_image=${{ env.ECR_REGISTRY }}/${{ env.IMAGE_PREFIX }}/nginx:${BUILD_TAG}" >> $GITHUB_OUTPUT
+
+
+      - name: Build & push application image
+        run: |
+          docker build \
+            -f deployment/app/Dockerfile \
+            -t ${{ steps.vars.outputs.app_image }} \
+            .
+          docker push ${{ steps.vars.outputs.app_image }}
+
+      - name: Build & push nginx image
+        run: |
+          docker build \
+            -f deployment/nginx/${{ inputs.application_name }}/Dockerfile \
+            --build-arg BASE_IMAGE=nginx:1.25-alpine \
+            --build-arg ENVIRONMENT=${{ inputs.environment }} \
+            -t ${{ steps.vars.outputs.nginx_image }} \
+            deployment/nginx/${{ inputs.application_name }}/
+          docker push ${{ steps.vars.outputs.nginx_image }}
+
+  # ─────────────────────────────────────────────
+  # Run Database Migration
+  # ─────────────────────────────────────────────
+  migration:
+    name: Run Migration
+    needs: build
+    if: inputs.run_migration == 'true'
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch || github.ref }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name ${{ secrets.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+
+      - name: Deploy migration job
+        run: |
+          BUILD_TAG=${{ needs.build.outputs.build_tag }}
+          VALUES_FILE=deployment/values/${{ inputs.application_name }}/${{ inputs.environment }}/helm/values-migration.yaml
+          sed -i "s/\[BUILD_TAG\]/${BUILD_TAG}/g" ${VALUES_FILE}
+          helm upgrade --install \
+            ${{ inputs.application_name }}-migration \
+            deployment/charts/migration \
+            -f ${VALUES_FILE} \
+            -n ${{ inputs.application_name }} \
+            --wait --timeout 300s
+
+  # ─────────────────────────────────────────────
+  # Run Collectstatic
+  # ─────────────────────────────────────────────
+  collectstatic:
+    name: Run Collectstatic
+    needs: build
+    if: inputs.run_collectstatic == 'true'
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch || github.ref }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name ${{ secrets.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+
+      - name: Deploy collectstatic job
+        run: |
+          BUILD_TAG=${{ needs.build.outputs.build_tag }}
+          VALUES_FILE=deployment/values/${{ inputs.application_name }}/${{ inputs.environment }}/helm/values-collectstatic.yaml
+          sed -i "s/\[BUILD_TAG\]/${BUILD_TAG}/g" ${VALUES_FILE}
+          helm upgrade --install \
+            ${{ inputs.application_name }}-collectstatic \
+            deployment/charts/collectstatic \
+            -f ${VALUES_FILE} \
+            -n ${{ inputs.application_name }} \
+            --wait --timeout 300s
+
+  # ─────────────────────────────────────────────
+  # Deploy Application (App + Nginx + Workers + Cron)
+  # ─────────────────────────────────────────────
+  deploy:
+    name: Deploy Application
+    needs: [build, migration, collectstatic]
+    if: |
+      always() &&
+      needs.build.result == 'success' &&
+      (needs.migration.result == 'success' || needs.migration.result == 'skipped') &&
+      (needs.collectstatic.result == 'success' || needs.collectstatic.result == 'skipped')
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch || github.ref }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name ${{ secrets.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+
+      - name: Set BUILD_TAG in values files
+        run: |
+          BUILD_TAG=${{ needs.build.outputs.build_tag }}
+          HELM_DIR=deployment/values/${{ inputs.application_name }}/${{ inputs.environment }}/helm
+          for f in ${HELM_DIR}/values-*.yaml; do
+            sed -i "s/\[BUILD_TAG\]/${BUILD_TAG}/g" "$f"
+          done
+
+      # Deploy Secret Provider Class
+      - name: Deploy Secret Provider Class
+        run: |
+          helm upgrade --install \
+            ${{ inputs.application_name }}-secret-provider-class \
+            deployment/charts/secret-provider-class \
+            -f deployment/values/${{ inputs.application_name }}/${{ inputs.environment }}/helm/values-secret-provider-class.yaml \
+            -n ${{ inputs.application_name }}
+
+      # Deploy App
+      - name: Deploy App
+        run: |
+          helm upgrade --install \
+            ${{ inputs.application_name }}-app \
+            deployment/charts/app \
+            -f deployment/values/${{ inputs.application_name }}/${{ inputs.environment }}/helm/values-app.yaml \
+            -n ${{ inputs.application_name }} \
+            --wait --timeout 600s
+
+      # Deploy Nginx
+      - name: Deploy Nginx
+        run: |
+          helm upgrade --install \
+            ${{ inputs.application_name }}-nginx \
+            deployment/charts/nginx \
+            -f deployment/values/${{ inputs.application_name }}/${{ inputs.environment }}/helm/values-nginx.yaml \
+            -n ${{ inputs.application_name }} \
+            --wait --timeout 300s
+
+      # Deploy Ingress
+      - name: Deploy Ingress
+        run: |
+          helm upgrade --install \
+            ${{ inputs.application_name }}-ingress \
+            deployment/charts/ingress \
+            -f deployment/values/${{ inputs.application_name }}/${{ inputs.environment }}/helm/values-ingress.yaml \
+            -n ${{ inputs.application_name }}
+
+      # Deploy Worker
+      - name: Deploy Worker
+        run: |
+          helm upgrade --install \
+            ${{ inputs.application_name }}-worker \
+            deployment/charts/worker \
+            -f deployment/values/${{ inputs.application_name }}/${{ inputs.environment }}/helm/values-worker.yaml \
+            -n ${{ inputs.application_name }} \
+            --wait --timeout 300s
+
+      # Deploy Worker High Priority
+      - name: Deploy Worker High
+        run: |
+          VALUES_FILE=deployment/values/${{ inputs.application_name }}/${{ inputs.environment }}/helm/values-worker-high.yaml
+          if [ -f "$VALUES_FILE" ]; then
+            helm upgrade --install \
+              ${{ inputs.application_name }}-worker-high \
+              deployment/charts/worker \
+              -f ${VALUES_FILE} \
+              -n ${{ inputs.application_name }} \
+              --wait --timeout 300s
+          fi
+
+      # Deploy Worker Medium Priority
+      - name: Deploy Worker Medium
+        run: |
+          VALUES_FILE=deployment/values/${{ inputs.application_name }}/${{ inputs.environment }}/helm/values-worker-medium.yaml
+          if [ -f "$VALUES_FILE" ]; then
+            helm upgrade --install \
+              ${{ inputs.application_name }}-worker-medium \
+              deployment/charts/worker \
+              -f ${VALUES_FILE} \
+              -n ${{ inputs.application_name }} \
+              --wait --timeout 300s
+          fi
+
+      # Deploy Cron (Celery Beat)
+      - name: Deploy Cron
+        run: |
+          helm upgrade --install \
+            ${{ inputs.application_name }}-cron \
+            deployment/charts/cron \
+            -f deployment/values/${{ inputs.application_name }}/${{ inputs.environment }}/helm/values-cron.yaml \
+            -n ${{ inputs.application_name }} \
+            --wait --timeout 300s
+
+      # Deploy Users (if values exist)
+      - name: Deploy Users
+        run: |
+          VALUES_FILE=deployment/values/${{ inputs.application_name }}/${{ inputs.environment }}/helm/values-users.yaml
+          if [ -f "$VALUES_FILE" ]; then
+            helm upgrade --install \
+              ${{ inputs.application_name }}-users \
+              deployment/charts/users \
+              -f ${VALUES_FILE} \
+              -n ${{ inputs.application_name }} \
+              --wait --timeout 300s
+          fi
