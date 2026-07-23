@@ -57,7 +57,7 @@ on:
 env:
   AWS_REGION: us-east-1
   ECR_REGISTRY: 211535858832.dkr.ecr.us-east-1.amazonaws.com
-  IMAGE_PREFIX: ${{ inputs.environment }}/ygg/${{ inputs.application_name }}
+  IMAGE_PREFIX: ${{ inputs.environment }}/stepora/${{ inputs.application_name }}
 
 jobs:
   # ─────────────────────────────────────────────
