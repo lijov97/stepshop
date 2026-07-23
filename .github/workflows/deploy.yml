@@ -56,7 +56,7 @@ on:
 
 env:
   AWS_REGION: me-central-1
-  ECR_REGISTRY: 459037613883.dkr.ecr.me-central-1.amazonaws.com
+  ECR_REGISTRY: 500645089924.dkr.ecr.me-central-1.amazonaws.com
   IMAGE_PREFIX: ${{ inputs.environment }}/ygg/${{ inputs.application_name }}
 
 jobs:
